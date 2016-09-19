@@ -1,0 +1,13 @@
+# systemctl cat sockio.service
+
+[Unit]
+Description=Test sockio
+Requires=sockio-stdin.socket sockio-stderr.socket
+
+[Service]
+Sockets=sockio-stdin.socket sockio-stderr.socket
+ExecStart=/bin/bash -c 'while read line; do echo $line; echo piped a line to log, yay. >&2; done'
+RestartSec=60
+StandardInput=named-descriptor
+StandardOutput=journal
+StandardError=named-descriptor

@@ -1,0 +1,12 @@
+# systemctl cat sockio-stdin.socket
+
+[Unit]
+Description=Test socket stdin
+DefaultDependencies=no
+BindsTo=sockio.service
+
+[Socket]
+Service=sockio.service
+ListenFIFO=/tmp/sockio-in
+FileDescriptorName=StandardInput
+RemoveOnStop=true

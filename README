@@ -1,0 +1,63 @@
+# systemctl cat sockio.service 
+
+[Unit]
+Description=Test sockio
+Requires=sockio-stdin.socket sockio-stderr.socket
+
+[Service]
+Sockets=sockio-stdin.socket sockio-stderr.socket
+ExecStart=/bin/bash -c 'while read line; do echo $line; echo piped a line to log, yay. >&2; done'
+RestartSec=60
+StandardInput=named-descriptor
+StandardOutput=journal
+StandardError=named-descriptor
+
+
+# systemctl cat sockio-stdin.socket 
+
+[Unit]
+Description=Test socket stdin
+DefaultDependencies=no
+BindsTo=sockio.service
+
+[Socket]
+Service=sockio.service
+ListenFIFO=/tmp/sockio-in
+FileDescriptorName=StandardInput
+RemoveOnStop=true
+
+
+# systemctl cat sockio-stderr.socket 
+
+[Unit]
+Description=Test socket stderr
+DefaultDependencies=no
+BindsTo=sockio.service
+
+[Socket]
+Service=sockio.service
+ListenFIFO=/tmp/sockio-err
+FileDescriptorName=StandardError
+RemoveOnStop=true
+
+
+# systemctl start sockio
+
+# systemctl status sockio
+● sockio.service - Test sockio
+   Loaded: loaded (/etc/systemd/system/sockio.service; static; vendor preset: enabled)
+   Active: active (running) since Sun 2016-09-18 23:07:35 UTC; 4s ago
+ Main PID: 435 (bash)
+   CGroup: /machine.slice/machine-image.raw.scope/system.slice/sockio.service
+           └─435 /bin/bash -c while read line; do echo $line; echo piped a line to log, yay. >&2; done
+
+Sep 18 23:07:35 xantho systemd[1]: Started Test sockio.
+
+# cat /tmp/sockio-err &
+[1] 444
+
+# echo hello socket > /tmp/sockio-in 
+# piped a line to log, yay.
+
+# journalctl | tail -1
+Sep 18 23:09:39 xantho bash[435]: hello socket
