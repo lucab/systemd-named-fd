@@ -8,9 +8,9 @@ Requires=sockio-stdin.socket sockio-stderr.socket
 Sockets=sockio-stdin.socket sockio-stderr.socket
 ExecStart=/bin/bash -c 'while read line; do echo $line; echo piped a line to log, yay. >&2; done'
 RestartSec=60
-StandardInput=named-descriptor
+StandardInput="sockio-in"
 StandardOutput=journal
-StandardError=named-descriptor
+StandardError="sockio-err"
 
 
 # systemctl cat sockio-stdin.socket 
@@ -23,7 +23,7 @@ BindsTo=sockio.service
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-in
-FileDescriptorName=StandardInput
+FileDescriptorName=sockio-in
 RemoveOnStop=true
 
 
@@ -37,7 +37,7 @@ BindsTo=sockio.service
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-err
-FileDescriptorName=StandardError
+FileDescriptorName=sockio-err
 RemoveOnStop=true
 
 

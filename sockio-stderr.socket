@@ -8,5 +8,5 @@ BindsTo=sockio.service
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-err
-FileDescriptorName=StandardError
+FileDescriptorName=sockio-err
 RemoveOnStop=true

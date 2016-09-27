@@ -8,5 +8,5 @@ BindsTo=sockio.service
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-in
-FileDescriptorName=StandardInput
+FileDescriptorName=sockio-in
 RemoveOnStop=true
