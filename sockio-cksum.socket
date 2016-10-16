@@ -1,0 +1,13 @@
+# systemctl cat sockio-cksum.socket
+
+[Unit]
+Description=Test socket cksum
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
+
+[Socket]
+Service=sockio-sidecar.service
+ListenFIFO=/tmp/sockio-cksum
+FileDescriptorName=sockio-cksum
+RemoveOnStop=true

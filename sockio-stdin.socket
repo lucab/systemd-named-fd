@@ -2,11 +2,12 @@
 
 [Unit]
 Description=Test socket stdin
-DefaultDependencies=no
-BindsTo=sockio.service
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
 
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-in
-FileDescriptorName=sockio-in
+FileDescriptorName=sockio-stdin
 RemoveOnStop=true

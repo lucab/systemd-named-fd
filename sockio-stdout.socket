@@ -1,0 +1,13 @@
+# systemctl cat sockio-stdout.socket
+
+[Unit]
+Description=Test socket stdout
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
+
+[Socket]
+Service=sockio.service
+ListenFIFO=/tmp/sockio-out
+FileDescriptorName=sockio-stdout
+RemoveOnStop=true

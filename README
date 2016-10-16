@@ -1,63 +1,94 @@
-# systemctl cat sockio.service 
-
-[Unit]
-Description=Test sockio
-Requires=sockio-stdin.socket sockio-stderr.socket
-
-[Service]
-Sockets=sockio-stdin.socket sockio-stderr.socket
-ExecStart=/bin/bash -c 'while read line; do echo $line; echo piped a line to log, yay. >&2; done'
-RestartSec=60
-StandardInput="sockio-in"
-StandardOutput=journal
-StandardError="sockio-err"
-
-
-# systemctl cat sockio-stdin.socket 
+# systemctl cat sockio-stdin.socket
 
 [Unit]
 Description=Test socket stdin
-DefaultDependencies=no
-BindsTo=sockio.service
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
 
 [Socket]
 Service=sockio.service
 ListenFIFO=/tmp/sockio-in
-FileDescriptorName=sockio-in
+FileDescriptorName=sockio-stdin
 RemoveOnStop=true
 
-
-# systemctl cat sockio-stderr.socket 
+# systemctl cat sockio-stdout.socket
 
 [Unit]
-Description=Test socket stderr
-DefaultDependencies=no
-BindsTo=sockio.service
+Description=Test socket stdout
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
 
 [Socket]
 Service=sockio.service
-ListenFIFO=/tmp/sockio-err
-FileDescriptorName=sockio-err
+ListenFIFO=/tmp/sockio-out
+FileDescriptorName=sockio-stdout
 RemoveOnStop=true
 
+# systemctl cat sockio-cksum.socket
 
-# systemctl start sockio
+[Unit]
+Description=Test socket cksum
+StopWhenUnneeded=true
+RefuseManualStart=true
+RefuseManualStop=true
 
-# systemctl status sockio
-● sockio.service - Test sockio
-   Loaded: loaded (/etc/systemd/system/sockio.service; static; vendor preset: enabled)
-   Active: active (running) since Sun 2016-09-18 23:07:35 UTC; 4s ago
- Main PID: 435 (bash)
-   CGroup: /machine.slice/machine-image.raw.scope/system.slice/sockio.service
-           └─435 /bin/bash -c while read line; do echo $line; echo piped a line to log, yay. >&2; done
+[Socket]
+Service=sockio-sidecar.service
+ListenFIFO=/tmp/sockio-cksum
+FileDescriptorName=sockio-cksum
+RemoveOnStop=true
 
-Sep 18 23:07:35 xantho systemd[1]: Started Test sockio.
+# systemctl cat sockio.service
 
-# cat /tmp/sockio-err &
-[1] 444
+[Unit]
+Description=Test sockio
 
-# echo hello socket > /tmp/sockio-in 
-# piped a line to log, yay.
+[Service]
+Sockets=sockio-stdin.socket sockio-stdout.socket sockio-cksum.socket
+ExecStart=/bin/bash -c 'while read line; do echo Read from FIFO: "$line"; echo $line >&2; done'
+RestartSec=60
+StandardInput=fd:sockio-stdin
+StandardOutput=fd:sockio-stdout
+StandardError=fd:sockio-cksum
+
+# systemctl cat sockio-sidecar.service
+
+[Unit]
+Description=Test sockio - sidecar
+
+[Service]
+Sockets=sockio-cksum.socket sockio-stdout.socket
+ExecStart=/bin/bash -c 'while read line; do c=$(echo $line | shasum - | cut -d" " -f1); echo "Checksum from FIFO: $c"; echo "Processed via sockio pipeline: $line -> $c" >&2; done'
+RestartSec=60
+StandardInput=fd:sockio-cksum
+StandardOutput=fd:sockio-stdout
+StandardError=journal
+
+# systemctl start sockio sockio-sidecar
+
+# systemctl list-units -t socket sockio*
+UNIT                 LOAD   ACTIVE SUB     DESCRIPTION
+sockio-cksum.socket  loaded active running Test socket cksum
+sockio-stdin.socket  loaded active running Test socket stdin
+sockio-stdout.socket loaded active running Test socket stdout
+
+# ls /tmp/sockio-*
+/tmp/sockio-cksum  /tmp/sockio-in  /tmp/sockio-out
+
+# cat /tmp/sockio-out &
+[2] 143
+
+# echo hi > /tmp/sockio-in
+Read from FIFO: hi
+Checksum from FIFO: 55ca6286e3e4f4fba5d0448333fa99fc5a404a73
 
 # journalctl | tail -1
-Sep 18 23:09:39 xantho bash[435]: hello socket
+Oct 16 11:27:09 xantho bash[130]: Processed via sockio pipeline: hi -> 55ca6286e3e4f4fba5d0448333fa99fc5a404a73
+
+# systemctl stop sockio sockio-sidecar
+[1]+  Done                    cat /tmp/sockio-out
+
+# systemctl list-units -t socket sockio*
+0 loaded units listed.

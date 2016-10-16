@@ -1,0 +1,13 @@
+# systemctl cat sockio-sidecar.service
+
+[Unit]
+Description=Test sockio - sidecar
+
+[Service]
+Sockets=sockio-cksum.socket sockio-stdout.socket
+ExecStart=/bin/bash -c 'while read line; do c=$(echo $line | shasum - | cut -d" " -f1); echo "Checksum from FIFO: $c"; echo "Processed via sockio pipeline: $line -> $c" >&2; done'
+RestartSec=60
+StandardInput=fd:sockio-cksum
+StandardOutput=fd:sockio-stdout
+StandardError=journal
+

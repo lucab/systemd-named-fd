@@ -2,12 +2,11 @@
 
 [Unit]
 Description=Test sockio
-Requires=sockio-stdin.socket sockio-stderr.socket
 
 [Service]
-Sockets=sockio-stdin.socket sockio-stderr.socket
-ExecStart=/bin/bash -c 'while read line; do echo $line; echo piped a line to log, yay. >&2; done'
+Sockets=sockio-stdin.socket sockio-stdout.socket sockio-cksum.socket
+ExecStart=/bin/bash -c 'while read line; do echo Read from FIFO: "$line"; echo $line >&2; done'
 RestartSec=60
-StandardInput="sockio-in"
-StandardOutput=journal
-StandardError="sockio-err"
+StandardInput=fd:sockio-stdin
+StandardOutput=fd:sockio-stdout
+StandardError=fd:sockio-cksum
